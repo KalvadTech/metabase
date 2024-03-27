@@ -427,8 +427,16 @@
   (let [[_ value {base-type :base_type, database-type :database_type}] value]
     (when (some? value)
       (condp #(isa? %2 %1) base-type
-        :type/UUID         (when (not= "" value) ; support is-empty/non-empty checks
-                             (UUID/fromString  value))
+        :type/UUID (when (not= "" value)
+                    (UUID/fromString value)
+                )
+        ;; use this if you want to submit as text incases like filter contains
+        ;; :type/UUID
+        ;;         (when (not= "" value)
+        ;;           (try
+        ;;             (UUID/fromString value)
+        ;;             (catch Exception _
+        ;;               (h2x/cast "text" value))))
         :type/IPAddress    (h2x/cast :inet value)
         :type/PostgresEnum (if (quoted? database-type)
                              (h2x/cast database-type value)
@@ -575,6 +583,10 @@
                           (sql.qp/json-query :postgres % stored-field)
                           %)
                        identifier))
+
+      ;; should only cast feild to text if special filter type like contains
+      ;; (= (:database-type stored-field) "uuid")
+      ;; (pg-conversion identifier :text)
 
       :else
       identifier)))
